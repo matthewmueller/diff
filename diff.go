@@ -46,8 +46,8 @@ func String(a, b string) string {
 
 // HTTP diffs two response dumps via httputil.DumpResponse
 func HTTP(a, b string) string {
-	a = strings.Replace(strings.TrimSpace(dedent.Dedent(a)), "\n", "\r\n", -1)
-	b = strings.TrimSpace(dedent.Dedent(b))
+	a = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(a)), "\r\n", "\n")
+	b = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(b)), "\r\n", "\n")
 	return String(a, b)
 }
 

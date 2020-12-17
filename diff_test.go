@@ -34,8 +34,7 @@ func TestHTTPOk(t *testing.T) {
 		Connection: close
 	`
 	result := diff.HTTP(a, a)
-	// Note, this isn't perfect, but visually it's not a problem.
-	assert.Equal(t, "HTTP/1.1 200 OK\x1b[101m\x1b[30m\r\x1b[0m\nConnection: close", result)
+	assert.Equal(t, result, diff.HTTP(a, result))
 }
 
 func TestHTTPNotOk(t *testing.T) {
@@ -48,5 +47,72 @@ func TestHTTPNotOk(t *testing.T) {
 		Connection: close
 	`
 	result := diff.HTTP(a, b)
-	assert.Equal(t, "HTTP/1.1 \x1b[101m\x1b[30m20\x1b[0m\x1b[102m\x1b[30m4\x1b[0m0\x1b[102m\x1b[30m4\x1b[0m \x1b[102m\x1b[30mNot F\x1b[0mO\x1b[101m\x1b[30mK\r\x1b[0m\x1b[102m\x1b[30mund\x1b[0m\nConnection: close", result)
+	assert.Equal(t, "HTTP/1.1 \x1b[101m\x1b[30m2\x1b[0m\x1b[102m\x1b[30m4\x1b[0m0\x1b[101m\x1b[30m0\x1b[0m\x1b[102m\x1b[30m4 Not\x1b[0m \x1b[102m\x1b[30mF\x1b[0mO\x1b[101m\x1b[30mK\x1b[0m\x1b[102m\x1b[30mund\x1b[0m\nConnection: close", result)
+}
+
+func TestHTMLOK(t *testing.T) {
+	a := `
+		HTTP/1.1 200 OK
+		Content-Length: 96
+		Content-Type: text/html
+
+		<html>
+			<head>
+				<title>Duo</title>
+			</head>
+			<body>
+				<h1>Hello Berlin!</h1>
+			</body>
+		</html>
+	`
+	b := `
+		HTTP/1.1 200 OK
+		Content-Length: 96
+		Content-Type: text/html
+
+		<html>
+			<head>
+				<title>Duo</title>
+			</head>
+			<body>
+				<h1>Hello Berlin!</h1>
+			</body>
+		</html>
+	`
+	result := diff.HTTP(a, b)
+	assert.Equal(t, result, diff.HTTP(a, result))
+}
+
+func TestHTMLNotOK(t *testing.T) {
+	a := `
+		HTTP/1.1 200 OK
+		Content-Length: 96
+		Content-Type: text/html
+
+		<html>
+			<head>
+				<title>Duo</title>
+			</head>
+			<body>
+				<h1>Hello Berlin!</h1>
+			</body>
+		</html>
+	`
+	b := `
+		HTTP/1.1 200 OK
+		Content-Length: 96
+		Content-Type: text/html
+
+
+		<html>
+			<head>
+				<title>Duo</title>
+			</head>
+			<body>
+				<h1>Hello Berlin!</h1>
+			</body>
+		</html>
+	`
+	result := diff.HTTP(a, b)
+	assert.Equal(t, "HTTP/1.1 200 OK\nContent-Length: 96\nContent-Type: text/html\n\n\x1b[102m\x1b[30m\n\x1b[0m<html>\n\t<head>\n\t\t<title>Duo</title>\n\t</head>\n\t<body>\n\t\t<h1>Hello Berlin!</h1>\n\t</body>\n</html>", result)
 }
