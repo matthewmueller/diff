@@ -73,8 +73,8 @@ func Test(t testing.TB, expected interface{}, actual interface{}) {
 
 // TestHTTP diffs two HTTP dumps from httputil.DumpResponse
 func TestHTTP(t testing.TB, expected, actual string) {
-	expected = strings.Replace(strings.TrimSpace(dedent.Dedent(expected)), "\n", "\r\n", -1)
-	actual = strings.TrimSpace(dedent.Dedent(actual))
+	expected = strings.TrimSpace(dedent.Dedent(expected))
+	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
 	Test(t, expected, actual)
 }
 
