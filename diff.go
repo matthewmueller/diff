@@ -54,6 +54,9 @@ func HTTP(a, b string) string {
 // Test tests actual with expected
 func Test(t testing.TB, expected string, actual interface{}) {
 	act := valast.StringWithOptions(actual, &valast.Options{Unqualify: true})
+	if expected == act {
+		return
+	}
 	var b bytes.Buffer
 	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
 	b.WriteString(expected)
