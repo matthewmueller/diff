@@ -2,7 +2,6 @@ package diff
 
 import (
 	"bytes"
-	"reflect"
 	"strings"
 	"testing"
 
@@ -52,22 +51,18 @@ func HTTP(a, b string) string {
 	return String(a, b)
 }
 
-// Test tests two diffs
-func Test(t testing.TB, expected interface{}, actual interface{}) {
-	if reflect.DeepEqual(expected, actual) {
-		return
-	}
-	exp := valast.StringWithOptions(expected, &valast.Options{Unqualify: true})
+// Test tests actual with expected
+func Test(t testing.TB, expected string, actual interface{}) {
 	act := valast.StringWithOptions(actual, &valast.Options{Unqualify: true})
 	var b bytes.Buffer
 	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
-	b.WriteString(exp)
+	b.WriteString(expected)
 	b.WriteString("\n\n")
 	b.WriteString("\x1b[4mActual\x1b[0m: \n")
 	b.WriteString(act)
 	b.WriteString("\n\n")
 	b.WriteString("\x1b[4mDifference\x1b[0m: \n")
-	b.WriteString(String(exp, act))
+	b.WriteString(String(expected, act))
 	b.WriteString("\n")
 	t.Fatal(b.String())
 }
