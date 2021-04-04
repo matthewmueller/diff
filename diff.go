@@ -57,8 +57,8 @@ func Test(t testing.TB, expected interface{}, actual interface{}) {
 	if reflect.DeepEqual(expected, actual) {
 		return
 	}
-	exp := valast.String(expected)
-	act := valast.String(actual)
+	exp := valast.StringWithOptions(expected, &valast.Options{Unqualify: true})
+	act := valast.StringWithOptions(actual, &valast.Options{Unqualify: true})
 	var b bytes.Buffer
 	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
 	b.WriteString(exp)
