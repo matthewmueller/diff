@@ -10,12 +10,42 @@ import (
 
 func TestDiffOk(t *testing.T) {
 	result := diff.Diff("hi", "hi")
-	assert.Equal(t, "hi", result)
+	// No color means no difference
+	assert.Equal(t, `hi`, result)
+}
+func TestDeepOk(t *testing.T) {
+	type C struct{ D string }
+	type A struct{ *C }
+	type B struct{}
+	type Web struct {
+		*A
+		B
+	}
+	web1 := &Web{&A{&C{"D"}}, B{}}
+	web2 := &Web{&A{&C{"D"}}, B{}}
+	result := diff.Diff(web1, web2)
+	// No color means no difference
+	assert.Equal(t, "&diff_test.Web{\n    A:  &diff_test.A{\n        C:  &diff_test.C{D:\"D\"},\n    },\n    B:  diff_test.B{},\n}", result)
 }
 
 func TestDiffNotOk(t *testing.T) {
 	result := diff.Diff(3, "hi")
+	// Color means difference
 	assert.Equal(t, "\x1b[102m\x1b[30mh\x1b[0mi\x1b[101m\x1b[30mnt(3)\x1b[0m", result)
+}
+func TestDeepNotOk(t *testing.T) {
+	type C struct{ D string }
+	type A struct{ *C }
+	type B struct{}
+	type Web struct {
+		*A
+		B
+	}
+	web1 := &Web{&A{&C{"D"}}, B{}}
+	web2 := &Web{&A{&C{"F"}}, B{}}
+	result := diff.Diff(web1, web2)
+	// Color means difference
+	assert.Equal(t, "&diff_test.Web{\n    A:  &diff_test.A{\n        C:  &diff_test.C{D:\"\x1b[101m\x1b[30mD\x1b[0m\x1b[102m\x1b[30mF\x1b[0m\"},\n    },\n    B:  diff_test.B{},\n}", result)
 }
 
 func TestStringOk(t *testing.T) {
