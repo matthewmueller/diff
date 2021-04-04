@@ -3,6 +3,7 @@ module github.com/matthewmueller/diff
 go 1.13
 
 require (
+	github.com/hexops/valast v1.0.0
 	github.com/kr/pretty v0.2.1
 	github.com/lithammer/dedent v1.1.0
 	github.com/sergi/go-diff v1.0.0

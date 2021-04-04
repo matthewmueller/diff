@@ -6,6 +6,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/hexops/valast"
 	"github.com/kr/pretty"
 	"github.com/lithammer/dedent"
 
@@ -56,8 +57,8 @@ func Test(t testing.TB, expected interface{}, actual interface{}) {
 	if reflect.DeepEqual(expected, actual) {
 		return
 	}
-	exp := pretty.Sprint(expected)
-	act := pretty.Sprint(actual)
+	exp := valast.String(expected)
+	act := valast.String(actual)
 	var b bytes.Buffer
 	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
 	b.WriteString(exp)
