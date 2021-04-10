@@ -5,7 +5,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/hexops/valast"
 	"github.com/kr/pretty"
 	"github.com/lithammer/dedent"
 
@@ -53,7 +52,7 @@ func HTTP(a, b string) string {
 
 // Test tests actual with expected
 func Test(t testing.TB, expected string, actual interface{}) {
-	act := valast.StringWithOptions(actual, &valast.Options{Unqualify: true})
+	act := pretty.Sprint(actual)
 	if expected == act {
 		return
 	}
