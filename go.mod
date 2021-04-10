@@ -9,5 +9,3 @@ require (
 	github.com/sergi/go-diff v1.0.0
 	github.com/stretchr/testify v1.4.0
 )
-
-replace github.com/hexops/valast => github.com/matthewmueller/valast v0.0.0-20210410125805-dd462f32373a
