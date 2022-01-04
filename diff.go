@@ -52,6 +52,7 @@ func HTTP(a, b string) string {
 
 // Test tests actual with expected
 func Test(t testing.TB, expected string, actual interface{}) {
+	t.Helper()
 	act := pretty.Sprint(actual)
 	if expected == act {
 		return
@@ -71,13 +72,15 @@ func Test(t testing.TB, expected string, actual interface{}) {
 
 // TestHTTP diffs two HTTP dumps from httputil.DumpResponse
 func TestHTTP(t testing.TB, expected, actual string) {
+	t.Helper()
 	expected = strings.TrimSpace(dedent.Dedent(expected))
 	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
 	Test(t, expected, actual)
 }
 
-// TestString ignores
+// TestString diffs two strings
 func TestString(t testing.TB, expected string, actual string) {
+	t.Helper()
 	if expected == actual {
 		return
 	}
