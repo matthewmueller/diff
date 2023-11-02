@@ -47,7 +47,7 @@ func HTTP(a, b string) string {
 // Test tests actual with expected
 func Test(t testing.TB, actual, expect interface{}) {
 	t.Helper()
-	testString(t, format(actual), format(expect))
+	TestString(t, format(actual), format(expect))
 }
 
 // TestHTTP diffs two HTTP dumps from httputil.DumpResponse
@@ -55,7 +55,7 @@ func TestHTTP(t testing.TB, actual, expect string) {
 	t.Helper()
 	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
 	expect = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(expect)), "\r\n", "\n")
-	testString(t, expect, actual)
+	TestString(t, expect, actual)
 }
 
 // Report the differences between actual and expect
@@ -76,8 +76,8 @@ func Report(actual, expect string) string {
 	return s.String()
 }
 
-// testString diffs two strings
-func testString(t testing.TB, actual string, expect string) {
+// TestString diffs two strings
+func TestString(t testing.TB, actual string, expect string) {
 	t.Helper()
 	report := Report(actual, expect)
 	if report == "" {
