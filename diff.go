@@ -5,34 +5,28 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/kr/pretty"
+	"github.com/hexops/valast"
 	"github.com/lithammer/dedent"
 
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 // Diff two interfaces
-func Diff(a, b interface{}) string {
-	as := pretty.Sprint(a)
-	bs := pretty.Sprint(b)
-	return String(as, bs)
+func Diff(actual, expect interface{}) string {
+	return String(format(actual), format(expect))
 }
 
 // String diffs two strings
-func String(a, b string) string {
+func String(actual, expect string) string {
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(a, b, false)
+	diffs := dmp.DiffMain(actual, expect, false)
 	var buf bytes.Buffer
 	for _, diff := range diffs {
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
-			buf.WriteString("\x1b[102m\x1b[30m")
-			buf.WriteString(diff.Text)
-			buf.WriteString("\x1b[0m")
+			buf.WriteString(green(diff.Text))
 		case diffmatchpatch.DiffDelete:
-			buf.WriteString("\x1b[101m\x1b[30m")
-			buf.WriteString(diff.Text)
-			buf.WriteString("\x1b[0m")
+			buf.WriteString(red(diff.Text))
 		case diffmatchpatch.DiffEqual:
 			buf.WriteString(diff.Text)
 		}
@@ -51,48 +45,64 @@ func HTTP(a, b string) string {
 }
 
 // Test tests actual with expected
-func Test(t testing.TB, expected string, actual interface{}) {
+func Test(t testing.TB, actual, expect interface{}) {
 	t.Helper()
-	act := pretty.Sprint(actual)
-	if expected == act {
-		return
-	}
-	var b bytes.Buffer
-	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
-	b.WriteString(expected)
-	b.WriteString("\n\n")
-	b.WriteString("\x1b[4mActual\x1b[0m: \n")
-	b.WriteString(act)
-	b.WriteString("\n\n")
-	b.WriteString("\x1b[4mDifference\x1b[0m: \n")
-	b.WriteString(String(expected, act))
-	b.WriteString("\n")
-	t.Fatal(b.String())
+	testString(t, format(actual), format(expect))
 }
 
 // TestHTTP diffs two HTTP dumps from httputil.DumpResponse
-func TestHTTP(t testing.TB, expected, actual string) {
+func TestHTTP(t testing.TB, actual, expect string) {
 	t.Helper()
-	expected = strings.TrimSpace(dedent.Dedent(expected))
 	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
-	Test(t, expected, actual)
+	expect = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(expect)), "\r\n", "\n")
+	testString(t, expect, actual)
 }
 
-// TestString diffs two strings
-func TestString(t testing.TB, expected string, actual string) {
+// Report the differences between actual and expect
+func Report(actual, expect string) string {
+	if actual == expect {
+		return ""
+	}
+	s := new(strings.Builder)
+	s.WriteString("\n\x1b[4mExpect\x1b[0m:\n")
+	s.WriteString(expect)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mActual\x1b[0m: \n")
+	s.WriteString(actual)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mDifference\x1b[0m: \n")
+	s.WriteString(String(actual, expect))
+	s.WriteString("\n")
+	return s.String()
+}
+
+// testString diffs two strings
+func testString(t testing.TB, actual string, expect string) {
 	t.Helper()
-	if expected == actual {
+	report := Report(actual, expect)
+	if report == "" {
 		return
 	}
-	var b bytes.Buffer
-	b.WriteString("\n\x1b[4mExpected\x1b[0m:\n")
-	b.WriteString(expected)
-	b.WriteString("\n\n")
-	b.WriteString("\x1b[4mActual\x1b[0m: \n")
-	b.WriteString(actual)
-	b.WriteString("\n\n")
-	b.WriteString("\x1b[4mDifference\x1b[0m: \n")
-	b.WriteString(String(expected, actual))
-	b.WriteString("\n")
-	t.Fatal(b.String())
+	t.Fatal(report)
+}
+
+func format(v interface{}) string {
+	if s, ok := v.(string); ok {
+		return s
+	}
+	return valast.StringWithOptions(v, &valast.Options{
+		Unqualify: true,
+	})
+}
+
+func red(s string) string {
+	return "\x1b[101m\x1b[30m" + s + "\x1b[0m"
+}
+
+func green(s string) string {
+	return "\x1b[102m\x1b[30m" + s + "\x1b[0m"
+}
+
+func bold(s string) string {
+	return "\n\x1b[4m" + s + "\x1b[0m"
 }

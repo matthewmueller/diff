@@ -1,11 +1,25 @@
 package diff_test
 
 import (
+	"strings"
 	"testing"
 
+	"github.com/lithammer/dedent"
 	"github.com/matryer/is"
 	"github.com/matthewmueller/diff"
 )
+
+func red(s string) string {
+	return "\x1b[101m\x1b[30m" + s + "\x1b[0m"
+}
+
+func green(s string) string {
+	return "\x1b[102m\x1b[30m" + s + "\x1b[0m"
+}
+
+func redent(s string) string {
+	return strings.TrimSpace(dedent.Dedent(s))
+}
 
 func TestDiffOk(t *testing.T) {
 	is := is.New(t)
@@ -26,14 +40,18 @@ func TestDeepOk(t *testing.T) {
 	web2 := &Web{&A{&C{"D"}}, B{}}
 	result := diff.Diff(web1, web2)
 	// No color means no difference
-	is.Equal("&diff_test.Web{\n    A:  &diff_test.A{\n        C:  &diff_test.C{D:\"D\"},\n    },\n    B:  diff_test.B{},\n}", result)
+	is.Equal(result, redent(`
+		&Web{A: &A{
+			C: &C{D: "D"},
+		}}
+	`))
 }
 
 func TestDiffNotOk(t *testing.T) {
 	is := is.New(t)
 	result := diff.Diff(3, "hi")
 	// Color means difference
-	is.Equal("\x1b[102m\x1b[30mh\x1b[0mi\x1b[101m\x1b[30mnt(3)\x1b[0m", result)
+	is.Equal(red("3")+green("hi"), result)
 }
 func TestDeepNotOk(t *testing.T) {
 	is := is.New(t)
@@ -48,7 +66,11 @@ func TestDeepNotOk(t *testing.T) {
 	web2 := &Web{&A{&C{"F"}}, B{}}
 	result := diff.Diff(web1, web2)
 	// Color means difference
-	is.Equal("&diff_test.Web{\n    A:  &diff_test.A{\n        C:  &diff_test.C{D:\"\x1b[101m\x1b[30mD\x1b[0m\x1b[102m\x1b[30mF\x1b[0m\"},\n    },\n    B:  diff_test.B{},\n}", result)
+	is.Equal(result, redent(`
+		&Web{A: &A{
+			C: &C{D: "`+red("D")+green("F")+`"},
+		}}
+	`))
 }
 
 func TestStringOk(t *testing.T) {
