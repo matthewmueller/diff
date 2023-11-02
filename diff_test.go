@@ -1,6 +1,10 @@
 package diff_test
 
 import (
+	"bytes"
+	"net/http"
+	"net/http/httptest"
+	"net/http/httputil"
 	"strings"
 	"testing"
 
@@ -93,6 +97,45 @@ func TestHTTPOk(t *testing.T) {
 	`
 	result := diff.HTTP(a, a)
 	is.Equal(result, diff.HTTP(a, result))
+}
+
+func TestHTTPRequest(t *testing.T) {
+	is := is.New(t)
+	req := httptest.NewRequest("POST", "http://example.com", bytes.NewBufferString(`{"hello": "world"}`))
+	out, err := httputil.DumpRequestOut(req, true)
+	is.NoErr(err)
+	diff.TestHTTP(t, string(out), string(out))
+	diff.TestHTTP(t, string(out), `
+		POST / HTTP/1.1
+		Host: example.com
+		User-Agent: Go-http-client/1.1
+		Content-Length: 18
+		Accept-Encoding: gzip
+
+		{"hello": "world"}
+	`)
+}
+
+func TestHTTPResponse(t *testing.T) {
+	is := is.New(t)
+	req := httptest.NewRequest("POST", "http://example.com", bytes.NewBufferString(`{"hello": "world"}`))
+	rec := httptest.NewRecorder()
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{"hello": "world"}`))
+	})
+	handler.ServeHTTP(rec, req)
+	out, err := httputil.DumpResponse(rec.Result(), true)
+	is.NoErr(err)
+	diff.TestHTTP(t, string(out), string(out))
+	diff.TestHTTP(t, string(out), `
+		HTTP/1.1 200 OK
+		Connection: close
+		Content-Type: application/json
+
+		{"hello": "world"}
+	`)
 }
 
 func TestHTTPNotOk(t *testing.T) {
