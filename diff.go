@@ -16,6 +16,20 @@ func Diff(actual, expect interface{}) string {
 	return String(format(actual), format(expect))
 }
 
+// Shows invisibles
+var invisibles = strings.NewReplacer(
+	" ", "·",
+	"\r", "\\r",
+	"\t", "\\t",
+	"\n", "\\n",
+)
+
+// Turns escaped newlines and tabs into newlines and tabs
+var newlines = strings.NewReplacer(
+	"\\n", "\n",
+	"\\t", "\t",
+)
+
 // String diffs two strings
 func String(actual, expect string) string {
 	dmp := diffmatchpatch.New()
@@ -24,16 +38,14 @@ func String(actual, expect string) string {
 	for _, diff := range diffs {
 		switch diff.Type {
 		case diffmatchpatch.DiffInsert:
-			buf.WriteString(green(diff.Text))
+			buf.WriteString(green(invisibles.Replace(diff.Text)))
 		case diffmatchpatch.DiffDelete:
-			buf.WriteString(red(diff.Text))
+			buf.WriteString(red(invisibles.Replace(diff.Text)))
 		case diffmatchpatch.DiffEqual:
-			buf.WriteString(diff.Text)
+			buf.WriteString(newlines.Replace(diff.Text))
 		}
 	}
 	result := buf.String()
-	result = strings.Replace(result, "\\n", "\n", -1)
-	result = strings.Replace(result, "\\t", "\t", -1)
 	return result
 }
 
