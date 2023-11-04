@@ -55,7 +55,7 @@ func TestHTTP(t testing.TB, actual, expect string) {
 	t.Helper()
 	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
 	expect = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(expect)), "\r\n", "\n")
-	TestString(t, expect, actual)
+	TestString(t, actual, expect)
 }
 
 // Report the differences between actual and expect
