@@ -149,7 +149,8 @@ func TestHTTPNotOk(t *testing.T) {
 		Connection: close
 	`
 	result := diff.HTTP(a, b)
-	is.Equal("HTTP/1.1 \x1b[101m\x1b[30m2\x1b[0m\x1b[102m\x1b[30m4\x1b[0m0\x1b[101m\x1b[30m0\x1b[0m\x1b[102m\x1b[30m4 Not\x1b[0m \x1b[102m\x1b[30mF\x1b[0mO\x1b[101m\x1b[30mK\x1b[0m\x1b[102m\x1b[30mund\x1b[0m\nConnection: close", result)
+	// Used json.Marshal to escape the escape sequences
+	is.Equal("HTTP/1.1 \u001b[101m\u001b[30m2\u001b[0m\u001b[102m\u001b[30m4\u001b[0m0\u001b[101m\u001b[30m0\u001b[0m\u001b[102m\u001b[30m4·Not\u001b[0m \u001b[102m\u001b[30mF\u001b[0mO\u001b[101m\u001b[30mK\u001b[0m\u001b[102m\u001b[30mund\u001b[0m\nConnection: close", result)
 }
 
 func TestHTMLOK(t *testing.T) {
@@ -218,5 +219,20 @@ func TestHTMLNotOK(t *testing.T) {
 		</html>
 	`
 	result := diff.HTTP(a, b)
-	is.Equal("HTTP/1.1 200 OK\nContent-Length: 96\nContent-Type: text/html\n\n\x1b[102m\x1b[30m\n\x1b[0m<html>\n\t<head>\n\t\t<title>Duo</title>\n\t</head>\n\t<body>\n\t\t<h1>Hello Berlin!</h1>\n\t</body>\n</html>", result)
+	is.Equal("HTTP/1.1 200 OK\nContent-Length: 96\nContent-Type: text/html\n\n\u001b[102m\u001b[30m\\n\u001b[0m<html>\n\t<head>\n\t\t<title>Duo</title>\n\t</head>\n\t<body>\n\t\t<h1>Hello Berlin!</h1>\n\t</body>\n</html>", result)
+}
+
+func TestContent(t *testing.T) {
+	is := is.New(t)
+	const a = `
+		a
+		b
+		c
+	`
+	const b = `
+	a
+	b
+	c
+	`
+	is.Equal(diff.Content(a, b), "a\nb\nc")
 }

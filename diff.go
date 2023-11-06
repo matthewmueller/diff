@@ -49,6 +49,11 @@ func String(actual, expect string) string {
 	return result
 }
 
+// Content returns the difference in content between actual and expect
+func Content(actual, expect string) string {
+	return String(strings.TrimSpace(dedent.Dedent(actual)), strings.TrimSpace(dedent.Dedent(expect)))
+}
+
 // HTTP diffs two response dumps via httputil.DumpResponse
 func HTTP(a, b string) string {
 	a = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(a)), "\r\n", "\n")
@@ -60,6 +65,12 @@ func HTTP(a, b string) string {
 func Test(t testing.TB, actual, expect interface{}) {
 	t.Helper()
 	TestString(t, format(actual), format(expect))
+}
+
+// Test the content of actual with expected
+func TestContent(t testing.TB, actual, expect interface{}) {
+	t.Helper()
+	TestString(t, strings.TrimSpace(dedent.Dedent(format(actual))), strings.TrimSpace(dedent.Dedent(format(expect))))
 }
 
 // TestHTTP diffs two HTTP dumps from httputil.DumpResponse
@@ -113,8 +124,4 @@ func red(s string) string {
 
 func green(s string) string {
 	return "\x1b[102m\x1b[30m" + s + "\x1b[0m"
-}
-
-func bold(s string) string {
-	return "\n\x1b[4m" + s + "\x1b[0m"
 }
