@@ -25,11 +25,19 @@ func redent(s string) string {
 	return strings.TrimSpace(dedent.Dedent(s))
 }
 
+func colorize(text string) string {
+	rep := strings.NewReplacer(
+		"{red}", "\x1b[101m\x1b[30m",
+		"{green}", "\x1b[102m\x1b[30m",
+		"{reset}", "\x1b[0m",
+	)
+	return rep.Replace(text)
+}
+
 func TestDiffOk(t *testing.T) {
 	is := is.New(t)
-	result := diff.Diff("hi", "hi")
-	// No color means no difference
-	is.Equal(`hi`, result)
+	err := diff.Diff("hi", "hi")
+	is.NoErr(err)
 }
 func TestDeepOk(t *testing.T) {
 	is := is.New(t)
@@ -42,20 +50,17 @@ func TestDeepOk(t *testing.T) {
 	}
 	web1 := &Web{&A{&C{"D"}}, B{}}
 	web2 := &Web{&A{&C{"D"}}, B{}}
-	result := diff.Diff(web1, web2)
-	// No color means no difference
-	is.Equal(result, redent(`
-		&Web{A: &A{
-			C: &C{D: "D"},
-		}}
-	`))
+	err := diff.Diff(web1, web2)
+	is.NoErr(err)
 }
 
 func TestDiffNotOk(t *testing.T) {
 	is := is.New(t)
-	result := diff.Diff(3, "hi")
-	// Color means difference
-	is.Equal(red("3")+green("hi"), result)
+	err := diff.Diff(3, "hi")
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	is.Equal(red("3")+green("hi"), de.Diff)
 }
 func TestDeepNotOk(t *testing.T) {
 	is := is.New(t)
@@ -68,9 +73,11 @@ func TestDeepNotOk(t *testing.T) {
 	}
 	web1 := &Web{&A{&C{"D"}}, B{}}
 	web2 := &Web{&A{&C{"F"}}, B{}}
-	result := diff.Diff(web1, web2)
-	// Color means difference
-	is.Equal(result, redent(`
+	err := diff.Diff(web1, web2)
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	is.Equal(de.Diff, redent(`
 		&Web{A: &A{
 			C: &C{D: "`+red("D")+green("F")+`"},
 		}}
@@ -79,14 +86,17 @@ func TestDeepNotOk(t *testing.T) {
 
 func TestStringOk(t *testing.T) {
 	is := is.New(t)
-	result := diff.String("hi", "hi")
-	is.Equal("hi", result)
+	err := diff.String("hi", "hi")
+	is.NoErr(err)
 }
 
 func TestStringNotOk(t *testing.T) {
 	is := is.New(t)
-	result := diff.String("hi", "cool")
-	is.Equal("\x1b[101m\x1b[30mhi\x1b[0m\x1b[102m\x1b[30mcool\x1b[0m", result)
+	err := diff.String("hi", "cool")
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	is.Equal(red("hi")+green("cool"), de.Diff)
 }
 
 func TestHTTPOk(t *testing.T) {
@@ -95,8 +105,8 @@ func TestHTTPOk(t *testing.T) {
 		HTTP/1.1 200 OK
 		Connection: close
 	`
-	result := diff.HTTP(a, a)
-	is.Equal(result, diff.HTTP(a, result))
+	err := diff.HTTP(a, a)
+	is.NoErr(err)
 }
 
 func TestHTTPRequest(t *testing.T) {
@@ -145,12 +155,16 @@ func TestHTTPNotOk(t *testing.T) {
 		Connection: close
 	`
 	b := `
-		HTTP/1.1 404 Not FOund
+		HTTP/1.1 404 Not Found
 		Connection: close
 	`
-	result := diff.HTTP(a, b)
-	// Used json.Marshal to escape the escape sequences
-	is.Equal("HTTP/1.1 \u001b[101m\u001b[30m2\u001b[0m\u001b[102m\u001b[30m4\u001b[0m0\u001b[101m\u001b[30m0\u001b[0m\u001b[102m\u001b[30m4·Not\u001b[0m \u001b[102m\u001b[30mF\u001b[0mO\u001b[101m\u001b[30mK\u001b[0m\u001b[102m\u001b[30mund\u001b[0m\nConnection: close", result)
+	err := diff.HTTP(a, b)
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	is.Equal(de.Actual, "HTTP/1.1 200 OK\nConnection: close")
+	is.Equal(de.Expect, "HTTP/1.1 404 Not Found\nConnection: close")
+	is.Equal(de.Diff, colorize("HTTP/1.1 {red}200·OK{reset}{green}404·Not·Found{reset}\nConnection: close"))
 }
 
 func TestHTMLOK(t *testing.T) {
@@ -183,8 +197,8 @@ func TestHTMLOK(t *testing.T) {
 			</body>
 		</html>
 	`
-	result := diff.HTTP(a, b)
-	is.Equal(result, diff.HTTP(a, result))
+	err := diff.HTTP(a, b)
+	is.NoErr(err)
 }
 
 func TestHTMLNotOK(t *testing.T) {
@@ -218,11 +232,15 @@ func TestHTMLNotOK(t *testing.T) {
 			</body>
 		</html>
 	`
-	result := diff.HTTP(a, b)
-	is.Equal("HTTP/1.1 200 OK\nContent-Length: 96\nContent-Type: text/html\n\n\u001b[102m\u001b[30m\\n\u001b[0m<html>\n\t<head>\n\t\t<title>Duo</title>\n\t</head>\n\t<body>\n\t\t<h1>Hello Berlin!</h1>\n\t</body>\n</html>", result)
+	err := diff.HTTP(a, b)
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	// Just check for the extra newline that's green
+	is.True(strings.Contains(de.Diff, "\x1b[102m\x1b[30m\\n\x1b[0m"))
 }
 
-func TestContent(t *testing.T) {
+func TestContentOK(t *testing.T) {
 	is := is.New(t)
 	const a = `
 		a
@@ -234,5 +252,26 @@ func TestContent(t *testing.T) {
 	b
 	c
 	`
-	is.Equal(diff.Content(a, b), "a\nb\nc")
+	err := diff.Content(a, b)
+	is.NoErr(err)
+}
+
+func TestContentNotOK(t *testing.T) {
+	is := is.New(t)
+	const a = `
+		a
+		b
+		c
+		d
+	`
+	const b = `
+	a
+	b
+	c
+	`
+	err := diff.Content(a, b)
+	is.True(err != nil)
+	de, ok := err.(*diff.Error)
+	is.True(ok)
+	is.Equal(de.Diff, colorize("a\nb\nc{red}\\nd{reset}"))
 }

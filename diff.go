@@ -12,7 +12,7 @@ import (
 )
 
 // Diff two interfaces
-func Diff(actual, expect interface{}) string {
+func Diff(actual, expect interface{}) error {
 	return String(format(actual), format(expect))
 }
 
@@ -30,10 +30,10 @@ var newlines = strings.NewReplacer(
 	"\\t", "\t",
 )
 
-// String diffs two strings
-func String(actual, expect string) string {
+func diff(a, b string) string {
 	dmp := diffmatchpatch.New()
-	diffs := dmp.DiffMain(actual, expect, false)
+	diffs := dmp.DiffMain(a, b, true)
+	diffs = dmp.DiffCleanupSemantic(diffs)
 	var buf bytes.Buffer
 	for _, diff := range diffs {
 		switch diff.Type {
@@ -45,20 +45,45 @@ func String(actual, expect string) string {
 			buf.WriteString(newlines.Replace(diff.Text))
 		}
 	}
-	result := buf.String()
-	return result
+	return buf.String()
+}
+
+type Error struct {
+	Actual, Expect, Diff string
+}
+
+func (e *Error) Error() string {
+	s := new(strings.Builder)
+	s.WriteString("\n\x1b[4mExpect\x1b[0m:\n")
+	s.WriteString(e.Expect)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mActual\x1b[0m: \n")
+	s.WriteString(e.Actual)
+	s.WriteString("\n\n")
+	s.WriteString("\x1b[4mDifference\x1b[0m: \n")
+	s.WriteString(e.Diff)
+	s.WriteString("\n")
+	return s.String()
+}
+
+// String diffs two strings
+func String(actual, expect string) error {
+	if actual == expect {
+		return nil
+	}
+	return &Error{actual, expect, diff(actual, expect)}
 }
 
 // Content returns the difference in content between actual and expect
-func Content(actual, expect string) string {
+func Content(actual, expect string) error {
 	return String(strings.TrimSpace(dedent.Dedent(actual)), strings.TrimSpace(dedent.Dedent(expect)))
 }
 
 // HTTP diffs two response dumps via httputil.DumpResponse
-func HTTP(a, b string) string {
-	a = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(a)), "\r\n", "\n")
-	b = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(b)), "\r\n", "\n")
-	return String(a, b)
+func HTTP(actual, expect string) error {
+	actual = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(actual)), "\r\n", "\n")
+	expect = strings.ReplaceAll(strings.TrimSpace(dedent.Dedent(expect)), "\r\n", "\n")
+	return String(actual, expect)
 }
 
 // Test tests actual with expected
@@ -81,32 +106,14 @@ func TestHTTP(t testing.TB, actual, expect string) {
 	TestString(t, actual, expect)
 }
 
-// Report the differences between actual and expect
-func Report(actual, expect string) string {
-	if actual == expect {
-		return ""
-	}
-	s := new(strings.Builder)
-	s.WriteString("\n\x1b[4mExpect\x1b[0m:\n")
-	s.WriteString(expect)
-	s.WriteString("\n\n")
-	s.WriteString("\x1b[4mActual\x1b[0m: \n")
-	s.WriteString(actual)
-	s.WriteString("\n\n")
-	s.WriteString("\x1b[4mDifference\x1b[0m: \n")
-	s.WriteString(String(actual, expect))
-	s.WriteString("\n")
-	return s.String()
-}
-
 // TestString diffs two strings
 func TestString(t testing.TB, actual string, expect string) {
 	t.Helper()
-	report := Report(actual, expect)
-	if report == "" {
+	err := String(actual, expect)
+	if err == nil {
 		return
 	}
-	t.Fatal(report)
+	t.Fatal(err)
 }
 
 func format(v interface{}) string {
